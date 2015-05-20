@@ -18,6 +18,7 @@ import warnings
 import sys
 import argparse
 from conv_net_classes import LeNetConvPoolLayer, MLPDropout
+import time
 warnings.filterwarnings("ignore")   
 
 #different non-linearities
@@ -149,7 +150,7 @@ def train_conv_net(datasets,
     test_model_all = theano.function([x,y], test_error)   
     
     #start training over mini-batches
-    print '... training'
+    print '... training, n_batches %d' % n_batches
     epoch = 0
     best_test_perf = 0
     test_perf = 0
@@ -163,7 +164,11 @@ def train_conv_net(datasets,
                 set_zero(zero_vec)
         else:
             for minibatch_index in xrange(n_batches):
+                tick = time.time()
+                print 'training, minibatch idx %s' % minibatch_index
                 cost_epoch = train_model(minibatch_index)  
+                elapsed = time.time() - tick
+                print 'trained minibatch idx %s, took %s' % (minibatch_index, elapsed)
                 set_zero(zero_vec)
 
         print 'computing training losses'
@@ -177,7 +182,7 @@ def train_conv_net(datasets,
         test_perf = 1- test_loss
 
         print('epoch %i, train perf %f %%, test perf %f %%' % (epoch, train_perf * 100., test_perf*100.))
-        
+
         if test_perf >= best_test_perf:
             print ('%f %% best test performance so far, updating it' % (test_perf*100.))
             best_test_perf = test_perf
@@ -316,10 +321,10 @@ def main():
                               conv_non_linear="relu",
                               hidden_units=[50,2],
                               shuffle_batch=False,
-                              n_epochs=10, 
+                              n_epochs=1, 
                               sqr_norm_lim=9,
                               non_static=non_static,
-                              batch_size=10,
+                              batch_size=80,
                               dropout_rate=[0.5])
         print "fold: %s -> %s" % (fold, perf)
         results.append(perf)
