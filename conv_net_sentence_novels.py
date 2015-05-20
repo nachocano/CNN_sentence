@@ -118,32 +118,28 @@ def train_conv_net(datasets,
         new_data = datasets[0]
     new_data = np.random.permutation(new_data)
     n_batches = new_data.shape[0]/batch_size
-    n_train_batches = int(np.round(n_batches*0.9))
-    #divide train set into train/val sets 
+
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
-    train_set = new_data[:n_train_batches*batch_size,:]
-    val_set = new_data[n_train_batches*batch_size:,:]     
-    train_set_x, train_set_y = shared_dataset((train_set[:,:img_h],train_set[:,-1]))
-    val_set_x, val_set_y = shared_dataset((val_set[:,:img_h],val_set[:,-1]))
-    n_val_batches = n_batches - n_train_batches
-    val_model = theano.function([index], classifier.errors(y),
-         givens={
-            x: val_set_x[index * batch_size: (index + 1) * batch_size],
-            y: val_set_y[index * batch_size: (index + 1) * batch_size]})
-            
-    #compile theano functions to get train/val/test errors
+
+    train_set_x, train_set_y = shared_dataset((new_data[:,:img_h],new_data[:,-1]))
+
+    #compile theano functions to get train/test errors
+
     test_model = theano.function([index], classifier.errors(y),
              givens={
                 x: train_set_x[index * batch_size: (index + 1) * batch_size],
-                y: train_set_y[index * batch_size: (index + 1) * batch_size]})               
+                y: train_set_y[index * batch_size: (index + 1) * batch_size]})
+    
     train_model = theano.function([index], cost, updates=grad_updates,
           givens={
             x: train_set_x[index*batch_size:(index+1)*batch_size],
             y: train_set_y[index*batch_size:(index+1)*batch_size]})     
+
     test_pred_layers = []
     test_size = test_set_x.shape[0]
     test_layer0_input = Words[T.cast(x.flatten(),dtype="int32")].reshape((test_size,1,img_h,Words.shape[1]))
+    
     for conv_layer in conv_layers:
         test_layer0_output = conv_layer.predict(test_layer0_input, test_size)
         test_pred_layers.append(test_layer0_output.flatten(2))
@@ -155,30 +151,38 @@ def train_conv_net(datasets,
     #start training over mini-batches
     print '... training'
     epoch = 0
-    best_val_perf = 0
-    val_perf = 0
-    test_perf = 0       
-    cost_epoch = 0    
+    best_test_perf = 0
+    test_perf = 0
+    cost_epoch = 0  
     while (epoch < n_epochs):        
         epoch = epoch + 1
+        print 'running epoch %d' % epoch
         if shuffle_batch:
-            for minibatch_index in np.random.permutation(range(n_train_batches)):
+            for minibatch_index in np.random.permutation(range(n_batches)):
                 cost_epoch = train_model(minibatch_index)
                 set_zero(zero_vec)
         else:
-            for minibatch_index in xrange(n_train_batches):
+            for minibatch_index in xrange(n_batches):
                 cost_epoch = train_model(minibatch_index)  
                 set_zero(zero_vec)
-        train_losses = [test_model(i) for i in xrange(n_train_batches)]
+
+        print 'computing training losses'
+        train_losses = [test_model(i) for i in xrange(n_batches)]
+        print 'training losses computed'
         train_perf = 1 - np.mean(train_losses)
-        val_losses = [val_model(i) for i in xrange(n_val_batches)]
-        val_perf = 1- np.mean(val_losses)                        
-        print('epoch %i, train perf %f %%, val perf %f' % (epoch, train_perf * 100., val_perf*100.))
-        if val_perf >= best_val_perf:
-            best_val_perf = val_perf
-            test_loss = test_model_all(test_set_x,test_set_y)        
-            test_perf = 1- test_loss         
-    return test_perf
+
+        print 'computing test losses'
+        test_loss = test_model_all(test_set_x,test_set_y)
+        print 'test losses computed'
+        test_perf = 1- test_loss
+
+        print('epoch %i, train perf %f %%, test perf %f %%' % (epoch, train_perf * 100., test_perf*100.))
+        
+        if test_perf >= best_test_perf:
+            print ('%f %% best test performance so far, updating it' % (test_perf*100.))
+            best_test_perf = test_perf
+
+    return best_test_perf
 
 def shared_dataset(data_xy, borrow=True):
         """ Function that loads the dataset into shared variables
