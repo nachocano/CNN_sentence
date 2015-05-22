@@ -49,7 +49,7 @@ def main():
     _, did, gid, fid, label = doc[0].split("_")
     rest = doc[1:]
     novels[(did, gid, fid, label)] = rest
-  
+
   assert len(syntaxs) == len(novels)
 
   novels_embeddings = read_embeddings(args.sentence_embedding_file, 'SENT', 'emb')
@@ -60,9 +60,10 @@ def main():
 
   oe = open(args.output_embedding_file, 'w')
   of = open(args.output_vocab_file, 'w')
-
+  c = 0
   for key in syntaxs:
-    print 'last processing %s' % key
+    print 'last processing %s' % c
+    c += 1
     s_array = syntaxs[key]
     n_array = novels[key]
     assert len(s_array) == len(n_array)
@@ -73,9 +74,10 @@ def main():
       ne = novels_embeddings[n]
       emb = se.extend(ne)
       sentence_nr = n.split("_")[-1]
-      new_se = se.replace("SYN", "")
-      new_id = '%s_%s' % (new_se, sentence_nr)
-      oe.write('%s %s\n' % (new_id, emb))
+      new_s = s.replace("SYN", "")
+      new_id = '%s_%s' % (new_s, sentence_nr)
+      emb_as_str = " ".join(str(e) for e in emb)
+      oe.write('%s %s\n' % (new_id, emb_as_str))
       elems.append(new_id)
     elems_as_str = " ".join(str(e) for e in elems)
     of.write('%s\n' % elems_as_str)
