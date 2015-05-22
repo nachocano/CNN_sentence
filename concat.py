@@ -77,9 +77,12 @@ def main():
       emb.extend(ne)
       sentence_nr = n.split("_")[-1]
       new_s = s.replace("SYN", "")
+      # new id for the vocab
       new_id = '%s_%s' % (new_s, sentence_nr)
+      # but need to append the did for the embedding file
       emb_as_str = " ".join(str(e) for e in emb)
-      oe.write('%s %s\n' % (new_id, emb_as_str))
+      new_id_emb = '%s_%s' % (new_id, key[0])
+      oe.write('%s %s\n' % (new_id_emb, emb_as_str))
       elems.append(new_id)
     elems_as_str = " ".join(str(e) for e in elems)
     of.write('%s\n' % elems_as_str)
