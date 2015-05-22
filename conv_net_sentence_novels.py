@@ -37,13 +37,13 @@ def Iden(x):
        
 def train_conv_net(datasets,
                    U,
-                   img_w=100, 
+                   img_w=200, 
                    filter_hs=[3,4,5],
-                   hidden_units=[50,2], 
+                   hidden_units=[100,2], 
                    dropout_rate=[0.5],
                    shuffle_batch=True,
                    n_epochs=25, 
-                   batch_size=50, 
+                   batch_size=80, 
                    lr_decay = 0.95,
                    conv_non_linear="relu",
                    activations=[Iden],
@@ -69,7 +69,7 @@ def train_conv_net(datasets,
         pool_sizes.append((img_h-filter_h+1, img_w-filter_w+1))
     parameters = [("image shape",img_h,img_w),("filter shape",filter_shapes), ("hidden_units",hidden_units),
                   ("dropout", dropout_rate), ("batch_size",batch_size),("non_static", non_static),
-                    ("learn_decay",lr_decay), ("conv_non_linear", conv_non_linear)
+                    ("learn_decay",lr_decay), ("conv_non_linear", conv_non_linear), ("non_static", non_static)
                     ,("sqr_norm_lim",sqr_norm_lim),("shuffle_batch",shuffle_batch)]
     print parameters    
     
@@ -120,27 +120,32 @@ def train_conv_net(datasets,
     new_data = np.random.permutation(new_data)
     n_batches = new_data.shape[0]/batch_size
 
+    n_train_batches = int(np.round(n_batches*0.9))
+    #divide train set into train/val sets 
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
-
-    train_set_x, train_set_y = shared_dataset((new_data[:,:img_h],new_data[:,-1]))
-
-    #compile theano functions to get train/test errors
-
+    train_set = new_data[:n_train_batches*batch_size,:]
+    val_set = new_data[n_train_batches*batch_size:,:]     
+    train_set_x, train_set_y = shared_dataset((train_set[:,:img_h],train_set[:,-1]))
+    val_set_x, val_set_y = shared_dataset((val_set[:,:img_h],val_set[:,-1]))
+    n_val_batches = n_batches - n_train_batches
+    val_model = theano.function([index], classifier.errors(y),
+         givens={
+            x: val_set_x[index * batch_size: (index + 1) * batch_size],
+            y: val_set_y[index * batch_size: (index + 1) * batch_size]})
+            
+    #compile theano functions to get train/val/test errors
     test_model = theano.function([index], classifier.errors(y),
              givens={
                 x: train_set_x[index * batch_size: (index + 1) * batch_size],
-                y: train_set_y[index * batch_size: (index + 1) * batch_size]})
-    
+                y: train_set_y[index * batch_size: (index + 1) * batch_size]})               
     train_model = theano.function([index], cost, updates=grad_updates,
           givens={
             x: train_set_x[index*batch_size:(index+1)*batch_size],
             y: train_set_y[index*batch_size:(index+1)*batch_size]})     
-
     test_pred_layers = []
     test_size = test_set_x.shape[0]
     test_layer0_input = Words[T.cast(x.flatten(),dtype="int32")].reshape((test_size,1,img_h,Words.shape[1]))
-    
     for conv_layer in conv_layers:
         test_layer0_output = conv_layer.predict(test_layer0_input, test_size)
         test_pred_layers.append(test_layer0_output.flatten(2))
@@ -152,42 +157,38 @@ def train_conv_net(datasets,
     #start training over mini-batches
     print '... training, n_batches %d' % n_batches
     epoch = 0
-    best_test_perf = 0
-    test_perf = 0
-    cost_epoch = 0  
-    while (epoch < n_epochs):        
+    best_val_perf = 0
+    val_perf = 0
+    test_perf = 0       
+    cost_epoch = 0    
+    while (epoch < n_epochs):
+        epoch_start = time.time()
         epoch = epoch + 1
         print 'running epoch %d' % epoch
         if shuffle_batch:
-            for minibatch_index in np.random.permutation(range(n_batches)):
+            for minibatch_index in np.random.permutation(range(n_train_batches)):
                 cost_epoch = train_model(minibatch_index)
                 set_zero(zero_vec)
         else:
-            for minibatch_index in xrange(n_batches):
-                tick = time.time()
-                print 'training, minibatch idx %s' % minibatch_index
+            for minibatch_index in xrange(n_train_batches):
+                mb_start_time = time.time()
+                print 'training, minibatch %s' % minibatch_index
                 cost_epoch = train_model(minibatch_index)  
-                elapsed = time.time() - tick
-                print 'trained minibatch idx %s, took %s' % (minibatch_index, elapsed)
                 set_zero(zero_vec)
-
-        print 'computing training losses'
-        train_losses = [test_model(i) for i in xrange(n_batches)]
-        print 'training losses computed'
+                print 'minibatch %s took %s' % (minibatch_index, time.time() - mb_start_time)
+                
+        train_losses = [test_model(i) for i in xrange(n_train_batches)]
         train_perf = 1 - np.mean(train_losses)
+        val_losses = [val_model(i) for i in xrange(n_val_batches)]
+        val_perf = 1- np.mean(val_losses)
 
-        print 'computing test losses'
-        test_loss = test_model_all(test_set_x,test_set_y)
-        print 'test losses computed'
-        test_perf = 1- test_loss
-
-        print('epoch %i, train perf %f %%, test perf %f %%' % (epoch, train_perf * 100., test_perf*100.))
-
-        if test_perf >= best_test_perf:
-            print ('%f %% best test performance so far, updating it' % (test_perf*100.))
-            best_test_perf = test_perf
-
-    return best_test_perf
+        print('epoch %i, train perf %f %%, val perf %f' % (epoch, train_perf * 100., val_perf*100.))
+        print 'epoch %s took %s' % (epoch, time.time() - epoch_start)
+        if val_perf >= best_val_perf:
+            best_val_perf = val_perf
+            test_loss = test_model_all(test_set_x,test_set_y)        
+            test_perf = 1- test_loss         
+    return test_perf
 
 def shared_dataset(data_xy, borrow=True):
         """ Function that loads the dataset into shared variables
@@ -257,7 +258,7 @@ def safe_update(dict_to, dict_from):
         dict_to[key] = val
     return dict_to
     
-def get_idx_from_sent(sent, word2idx, max_l, k, filter_h):
+def get_idx_from_sent(sent, did, word2idx, max_l, k, filter_h):
     """
     Transforms sentence into a list of indices. Pad with zeroes.
     """
@@ -267,6 +268,7 @@ def get_idx_from_sent(sent, word2idx, max_l, k, filter_h):
         x.append(0)
     words = sent.split()
     for word in words:
+        word = '%s_%s' % (word, did)
         if word in word2idx:
             x.append(word2idx[word])
     while len(x) < max_l+2*pad:
@@ -279,7 +281,7 @@ def make_idx_data_cv(docs, word2idx, cv, max_l, k, filter_h):
     """
     train, test = [], []
     for doc in docs:
-        sent = get_idx_from_sent(doc["text"], word2idx, max_l, k, filter_h)
+        sent = get_idx_from_sent(doc["text"], doc["id"], word2idx, max_l, k, filter_h)
         sent.append(doc["y"])
         if doc["split"] == cv:
             test.append(sent)
@@ -293,12 +295,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-p', '--pickle', required=True) # pickle file
     parser.add_argument('-m', '--mode', required=True) # mode, can be ns (for nonstatic), s (for static)
-    parser.add_argument('-d', '--embeddings_dimension', required=False, type=int, default=100)
+    parser.add_argument('-d', '--embeddings_dimension', required=False, type=int, default=200)
     #parser.add_argument('-o', '--output', required=True) # pickle output
     args = parser.parse_args()    
     print "loading data..."
+    start = time.time()
     docs, W, word2idx, vocab, max_sent_length = cPickle.load(open(args.pickle,"rb"))
-    print "data loaded"
+    print "data loaded, took %s" % (time.time() - start)
     
     U = W
     if args.mode == "ns":
@@ -319,9 +322,9 @@ def main():
                               lr_decay=0.95,
                               filter_hs=[3,4,5],
                               conv_non_linear="relu",
-                              hidden_units=[50,2],
+                              hidden_units=[100,2],
                               shuffle_batch=False,
-                              n_epochs=1, 
+                              n_epochs=25, 
                               sqr_norm_lim=9,
                               non_static=non_static,
                               batch_size=80,
