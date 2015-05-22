@@ -6,6 +6,7 @@ import numpy as np
 from collections import defaultdict
 from operator import itemgetter
 import re
+from copy import deepcopy
 
 def read_lines(f):
   for ii,line in enumerate(f):
@@ -65,20 +66,15 @@ def main():
     print 'last processing %s' % c
     c += 1
     s_array = syntaxs[key]
-    print s_array
     n_array = novels[key]
-    print n_array
     assert len(s_array) == len(n_array)
     doc_id = '%s_%s_%s_%s' % (key[0], key[1], key[2], key[3])
     elems = [doc_id]
     for s, n in zip(s_array, n_array):
       se = syntax_embeddings[s]
-      print se
       ne = novels_embeddings[n]
-      print ne
-      emb = se.extend(ne)
-      print emb
-      exit()
+      emb = deepcopy(se)
+      emb.extend(ne)
       sentence_nr = n.split("_")[-1]
       new_s = s.replace("SYN", "")
       new_id = '%s_%s' % (new_s, sentence_nr)
