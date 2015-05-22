@@ -9,7 +9,10 @@ import time
 def load_data(filename):
     docs = []
     vocab = defaultdict(float)
+    c = 0
     for line in read_lines(open(filename, 'r')):
+        print 'processing %s' % c
+        c += 1
         line = line.strip()
         splitted = line.split()
         name = splitted[0]
@@ -48,7 +51,7 @@ def get_W(filename, vocab, k=200):
         if i == 0:
             i = 1
             continue
-        #print 'processing %s' % counter
+        print 'processing %s' % counter
         counter += 1
         line = line.split()
         sentence = line[0]
