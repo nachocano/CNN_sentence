@@ -176,7 +176,7 @@ def train_conv_net(datasets,
                 cost_epoch = train_model(minibatch_index)  
                 set_zero(zero_vec)
                 print 'minibatch %s took %s' % (minibatch_index, time.time() - mb_start_time)
-                
+
         train_losses = [test_model(i) for i in xrange(n_train_batches)]
         train_perf = 1 - np.mean(train_losses)
         val_losses = [val_model(i) for i in xrange(n_val_batches)]
@@ -258,7 +258,7 @@ def safe_update(dict_to, dict_from):
         dict_to[key] = val
     return dict_to
     
-def get_idx_from_sent(sent, did, word2idx, max_l, k, filter_h):
+def get_idx_from_sent(sent, did, gid, word2idx, max_l, k, filter_h):
     """
     Transforms sentence into a list of indices. Pad with zeroes.
     """
@@ -268,7 +268,7 @@ def get_idx_from_sent(sent, did, word2idx, max_l, k, filter_h):
         x.append(0)
     words = sent.split()
     for word in words:
-        word = '%s_%s' % (word, did)
+        word = '%s_%s_%s' % (word, did, gid)
         if word in word2idx:
             x.append(word2idx[word])
     while len(x) < max_l+2*pad:
@@ -281,7 +281,7 @@ def make_idx_data_cv(docs, word2idx, cv, max_l, k, filter_h):
     """
     train, test = [], []
     for doc in docs:
-        sent = get_idx_from_sent(doc["text"], doc["id"], word2idx, max_l, k, filter_h)
+        sent = get_idx_from_sent(doc["text"], doc["id"], doc["gid"], word2idx, max_l, k, filter_h)
         sent.append(doc["y"])
         if doc["split"] == cv:
             test.append(sent)

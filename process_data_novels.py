@@ -21,11 +21,12 @@ def load_data(filename):
         num_words = len(splitted[1:])
         words = set(splitted[1:])
         for word in words:
-            word = '%s_%s' % (word, did)
+            word = '%s_%s_%s' % (word, did, gid)
             vocab[word] += 1
         datum  = {"y":int(label),
                   "text": sentences,
                   "id": did,
+                  "gid": gid, 
                   "num_words": num_words,
                   "split": int(fold)}
         docs.append(datum)
