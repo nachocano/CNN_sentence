@@ -81,7 +81,7 @@ def main():
       new_id = '%s_%s' % (new_s, sentence_nr)
       # but need to append the did and gender for the embedding file
       emb_as_str = " ".join(str(e) for e in emb)
-      new_id_emb = '%s_%s' % (new_id, key[0], key[1])
+      new_id_emb = '%s_%s_%s' % (new_id, key[0], key[1])
       oe.write('%s %s\n' % (new_id_emb, emb_as_str))
       elems.append(new_id)
     elems_as_str = " ".join(str(e) for e in elems)
