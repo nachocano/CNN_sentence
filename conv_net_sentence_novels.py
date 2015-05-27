@@ -172,10 +172,10 @@ def train_conv_net(datasets,
         else:
             for minibatch_index in xrange(n_train_batches):
                 mb_start_time = time.time()
-                print 'training, minibatch %s' % minibatch_index
+                #print 'training, minibatch %s' % minibatch_index
                 cost_epoch = train_model(minibatch_index)  
                 set_zero(zero_vec)
-                print 'minibatch %s took %s' % (minibatch_index, time.time() - mb_start_time)
+                #print 'minibatch %s took %s' % (minibatch_index, time.time() - mb_start_time)
 
         train_losses = [test_model(i) for i in xrange(n_train_batches)]
         train_perf = 1 - np.mean(train_losses)
@@ -289,8 +289,8 @@ def make_idx_data_cv(docs, word2idx, cv, max_l, k, filter_h):
             train.append(sent)
     train = np.array(train,dtype="int")
     test = np.array(test,dtype="int")
-    print "train shape %s" % str(train.shape[0])
-    print "test shape %s" % str(test.shape[0])
+    print "train shape %s" % str(train.shape)
+    print "test shape %s" % str(test.shape)
     return [train, test]     
   
 def main():
@@ -325,7 +325,7 @@ def main():
                               filter_hs=[3,4,5],
                               conv_non_linear="relu",
                               hidden_units=[100,2],
-                              shuffle_batch=False,
+                              shuffle_batch=True,
                               n_epochs=25, 
                               sqr_norm_lim=9,
                               non_static=non_static,
