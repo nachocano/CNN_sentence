@@ -120,7 +120,7 @@ def train_conv_net(datasets,
     new_data = np.random.permutation(new_data)
     n_batches = new_data.shape[0]/batch_size
 
-    n_train_batches = int(np.round(n_batches*0.9))
+    n_train_batches = int(np.round(n_batches*0.95))
     #divide train set into train/val sets 
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
@@ -289,6 +289,8 @@ def make_idx_data_cv(docs, word2idx, cv, max_l, k, filter_h):
             train.append(sent)
     train = np.array(train,dtype="int")
     test = np.array(test,dtype="int")
+    print "train shape %s" % str(train.shape[0])
+    print "test shape %s" % str(test.shape[0])
     return [train, test]     
   
 def main():
@@ -327,7 +329,7 @@ def main():
                               n_epochs=25, 
                               sqr_norm_lim=9,
                               non_static=non_static,
-                              batch_size=80,
+                              batch_size=16,
                               dropout_rate=[0.5])
         print "fold: %s -> %s" % (fold, perf)
         results.append(perf)
