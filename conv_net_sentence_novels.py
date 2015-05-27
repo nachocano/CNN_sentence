@@ -37,6 +37,7 @@ def Iden(x):
        
 def train_conv_net(datasets,
                    U,
+                   fold,
                    img_w=200, 
                    filter_hs=[3,4,5],
                    hidden_units=[100,2], 
@@ -155,7 +156,7 @@ def train_conv_net(datasets,
     test_model_all = theano.function([x,y], test_error)   
     
     #start training over mini-batches
-    print '... training, n_batches %d' % n_batches
+    print '... training fold %s, n_batches %d' % (fold, n_batches)
     epoch = 0
     best_val_perf = 0
     val_perf = 0
@@ -164,7 +165,7 @@ def train_conv_net(datasets,
     while (epoch < n_epochs):
         epoch_start = time.time()
         epoch = epoch + 1
-        print 'running epoch %d' % epoch
+        print 'running epoch %d for fold %d' % (epoch, fold)
         if shuffle_batch:
             for minibatch_index in np.random.permutation(range(n_train_batches)):
                 cost_epoch = train_model(minibatch_index)
@@ -182,7 +183,7 @@ def train_conv_net(datasets,
         val_losses = [val_model(i) for i in xrange(n_val_batches)]
         val_perf = 1- np.mean(val_losses)
 
-        print('epoch %i, train perf %f %%, val perf %f' % (epoch, train_perf * 100., val_perf*100.))
+        print('epoch %i for fold %d, train perf %f %%, val perf %f' % (epoch, fold, train_perf * 100., val_perf*100.))
         print 'epoch %s took %s' % (epoch, time.time() - epoch_start)
         if val_perf >= best_val_perf:
             best_val_perf = val_perf
@@ -320,13 +321,13 @@ def main():
         # five folds
         datasets = make_idx_data_cv(docs, word2idx, fold, max_l=max_sent_length, k=args.embeddings_dimension, filter_h=5)
         perf = train_conv_net(datasets,
-                              U,
+                              U, fold,
                               lr_decay=0.95,
                               filter_hs=[3,4,5],
                               conv_non_linear="relu",
                               hidden_units=[100,2],
                               shuffle_batch=True,
-                              n_epochs=25, 
+                              n_epochs=50,
                               sqr_norm_lim=9,
                               non_static=non_static,
                               batch_size=16,
