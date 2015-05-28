@@ -300,8 +300,11 @@ def main():
     parser.add_argument('-m', '--mode', required=True) # mode, can be ns (for nonstatic), s (for static)
     parser.add_argument('-d', '--embeddings_dimension', required=False, type=int, default=200)
     parser.add_argument('-hu', '--hidden_unit', required=False, type=int, default=100)
-    #parser.add_argument('-o', '--output', required=True) # pickle output
-    args = parser.parse_args()    
+    parser.add_argument('-nl', '--non_linearity', required=False, default='relu')
+    args = parser.parse_args()
+
+    assert args.non_linearity == 'relu' or args.non_linearity == 'tanh'
+
     print "loading data..."
     start = time.time()
     docs, W, word2idx, vocab, max_sent_length = cPickle.load(open(args.pickle,"rb"))
@@ -325,7 +328,7 @@ def main():
                               U, fold,
                               lr_decay=0.95,
                               filter_hs=[3,4,5],
-                              conv_non_linear="relu",
+                              conv_non_linear=args.non_linearity,
                               hidden_units=[args.hidden_unit,2],
                               shuffle_batch=True,
                               n_epochs=20,
