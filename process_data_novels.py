@@ -37,7 +37,7 @@ def read_lines(f):
         yield line
 
     
-def get_W(filename, vocab, k=200):
+def get_W(filename, vocab, split, t, k):
     """
     Get word matrix. W[i] is the vector for word indexed by i
     """
@@ -57,7 +57,13 @@ def get_W(filename, vocab, k=200):
         line = line.split()
         sentence = line[0]
         if sentence in vocab:
-            W[j] = np.array(line[1:]).astype(np.float32)
+            if not split:
+                W[j] = np.array(line[1:]).astype(np.float32)
+            else:
+                if t == 'sent':
+                    W[j] = np.array(line[k+1:]).astype(np.float32)
+                elif t == 'syn':
+                    W[j] = np.array(line[1:k+1]).astype(np.float32)
             word2idx[sentence] = j
             j += 1
     return W, word2idx
@@ -67,7 +73,13 @@ def main():
     parser.add_argument('-i', '--input', required=True) # doc as sentences (probably the syntax based one)
     parser.add_argument('-e', '--embeddings', required=True) # sentence embeddings (or syntax one)
     parser.add_argument('-o', '--output', required=True) # pickle output
+    parser.add_argument('-s', '--split', required=False, type=bool, default=False)
+    parser.add_argument('-t', '--type', required=False, default='sent')
+    parser.add_argument('-k', '--k', required=False, type=int, default=200)
     args = parser.parse_args()
+
+    if args.split:
+        assert args.type == 'sent' or args.type == 'syn'
 
     print "loading data..."        
     docs, vocab = load_data(args.input)
@@ -77,7 +89,7 @@ def main():
     print "vocab size: " + str(len(vocab))
     print "max sentence length: " + str(max_l)
 
-    W, word2idx = get_W(args.embeddings, vocab)
+    W, word2idx = get_W(args.embeddings, vocab, args.split, args.type, args.k)
     print "W shape %s" % str(W.shape)
     print "dumping pickle"
     start = time.time()
