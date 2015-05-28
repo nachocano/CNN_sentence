@@ -332,7 +332,8 @@ def main():
                               sqr_norm_lim=9,
                               non_static=non_static,
                               batch_size=16,
-                              dropout_rate=[0.5])
+                              dropout_rate=[0.5],
+                              img_w=args.embeddings_dimension)
         print "fold: %s -> %s" % (fold, perf)
         results.append(perf)
     print "avg performance %s" % str(np.mean(results))
