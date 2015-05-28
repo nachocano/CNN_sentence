@@ -299,7 +299,7 @@ def main():
     parser.add_argument('-p', '--pickle', required=True) # pickle file
     parser.add_argument('-m', '--mode', required=True) # mode, can be ns (for nonstatic), s (for static)
     parser.add_argument('-d', '--embeddings_dimension', required=False, type=int, default=200)
-    parser.add_argument('-h', '--hidden_unit', required=False, type=int, default=100)
+    parser.add_argument('-hu', '--hidden_unit', required=False, type=int, default=100)
     #parser.add_argument('-o', '--output', required=True) # pickle output
     args = parser.parse_args()    
     print "loading data..."
