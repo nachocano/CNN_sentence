@@ -301,14 +301,18 @@ def main():
     parser.add_argument('-d', '--embeddings_dimension', required=False, type=int, default=200)
     parser.add_argument('-hu', '--hidden_unit', required=False, type=int, default=100)
     parser.add_argument('-nl', '--non_linearity', required=False, default='relu')
+    parser.add_argument('-fs', '--filter_sizes', required=False, default='3,4,5')
     args = parser.parse_args()
 
     assert args.non_linearity == 'relu' or args.non_linearity == 'tanh'
+
+    filter_sizes = np.array(args.filter_sizes.split(',')).astype(int)
 
     print "loading data..."
     start = time.time()
     docs, W, word2idx, vocab, max_sent_length = cPickle.load(open(args.pickle,"rb"))
     print "data loaded, took %s" % (time.time() - start)
+    print "filter sizes %s" % filter_sizes
     
     U = W
     if args.mode == "ns":
@@ -323,11 +327,11 @@ def main():
     results = []
     for fold in xrange(1,6):
         # five folds
-        datasets = make_idx_data_cv(docs, word2idx, fold, max_l=max_sent_length, k=args.embeddings_dimension, filter_h=5)
+        datasets = make_idx_data_cv(docs, word2idx, fold, max_l=max_sent_length, k=args.embeddings_dimension, filter_h=filter_sizes[-1])
         perf = train_conv_net(datasets,
                               U, fold,
                               lr_decay=0.95,
-                              filter_hs=[3,4,5],
+                              filter_hs=filter_sizes,
                               conv_non_linear=args.non_linearity,
                               hidden_units=[args.hidden_unit,2],
                               shuffle_batch=True,
