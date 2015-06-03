@@ -188,7 +188,6 @@ def train_conv_net(datasets,
         print 'epoch %s took %s' % (epoch, time.time() - epoch_start)
         if val_perf >= best_val_perf:
             print 'computing test performance...'
-            best_val_perf = val_perf
             test_loss = test_model_all(test_set_x,test_set_y)        
             p_test_perf = 1- test_loss
             if val_perf == best_val_perf:
@@ -198,6 +197,7 @@ def train_conv_net(datasets,
             else:
                 test_perf = p_test_perf
                 print 'test performance for fold %d updated, %s' % (fold, test_perf)
+            best_val_perf = val_perf
     return test_perf
 
 def shared_dataset(data_xy, borrow=True):
