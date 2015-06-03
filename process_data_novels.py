@@ -6,7 +6,7 @@ import pandas as pd
 import argparse
 import time
 
-def load_data(filename):
+def load_data(filename, genre):
     docs = []
     vocab = defaultdict(float)
     c = 0
@@ -17,19 +17,20 @@ def load_data(filename):
         splitted = line.split()
         name = splitted[0]
         did, gid, fold, label = name.split("_")
-        sentences = ' '.join(str(s) for s in splitted[1:])
-        num_words = len(splitted[1:])
-        words = set(splitted[1:])
-        for word in words:
-            word = '%s_%s_%s' % (word, did, gid)
-            vocab[word] += 1
-        datum  = {"y":int(label),
-                  "text": sentences,
-                  "id": did,
-                  "gid": gid, 
-                  "num_words": num_words,
-                  "split": int(fold)}
-        docs.append(datum)
+        if genre == 0 or int(gid) == genre:
+            sentences = ' '.join(str(s) for s in splitted[1:])
+            num_words = len(splitted[1:])
+            words = set(splitted[1:])
+            for word in words:
+                word = '%s_%s_%s' % (word, did, gid)
+                vocab[word] += 1
+            datum  = {"y":int(label),
+                      "text": sentences,
+                      "id": did,
+                      "gid": gid, 
+                      "num_words": num_words,
+                      "split": int(fold)}
+            docs.append(datum)
     return docs, vocab
 
 def read_lines(f):
@@ -76,13 +77,14 @@ def main():
     parser.add_argument('-s', '--split', required=False, type=bool, default=False)
     parser.add_argument('-t', '--type', required=False, default='sent')
     parser.add_argument('-k', '--k', required=False, type=int, default=200)
+    parser.add_argument('-g', '--genre', required=False, type=int, default=0)
     args = parser.parse_args()
 
     if args.split:
         assert args.type == 'sent' or args.type == 'syn'
 
     print "loading data..."        
-    docs, vocab = load_data(args.input)
+    docs, vocab = load_data(args.input, args.genre)
     max_l = np.max(pd.DataFrame(docs)["num_words"])
     print "data loaded"
     print "number of sentences: " + str(len(docs))
