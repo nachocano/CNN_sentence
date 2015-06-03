@@ -49,7 +49,8 @@ def train_conv_net(datasets,
                    conv_non_linear="relu",
                    activations=[Iden],
                    sqr_norm_lim=9,
-                   non_static=True):
+                   non_static=True,
+                   train_percentage=0.95):
     """
     Train a simple conv net
     img_h = sentence length (padded where necessary)
@@ -121,7 +122,7 @@ def train_conv_net(datasets,
     new_data = np.random.permutation(new_data)
     n_batches = new_data.shape[0]/batch_size
 
-    n_train_batches = int(np.round(n_batches*0.95))
+    n_train_batches = int(np.round(n_batches*train_percentage))
     #divide train set into train/val sets 
     test_set_x = datasets[1][:,:img_h] 
     test_set_y = np.asarray(datasets[1][:,-1],"int32")
@@ -302,6 +303,7 @@ def main():
     parser.add_argument('-hu', '--hidden_unit', required=False, type=int, default=100)
     parser.add_argument('-nl', '--non_linearity', required=False, default='relu')
     parser.add_argument('-fs', '--filter_sizes', required=False, default='3,4,5')
+    parser.add_argument('-tp', '--train_percentage', required=False, type=float, default=0.95)
     args = parser.parse_args()
 
     assert args.non_linearity == 'relu' or args.non_linearity == 'tanh'
@@ -340,7 +342,8 @@ def main():
                               non_static=non_static,
                               batch_size=16,
                               dropout_rate=[0.5],
-                              img_w=args.embeddings_dimension)
+                              img_w=args.embeddings_dimension,
+                              train_percentage=args.train_percentage)
         print "fold: %s -> %s" % (fold, perf)
         results.append(perf)
     print "avg performance %s" % str(np.mean(results))
